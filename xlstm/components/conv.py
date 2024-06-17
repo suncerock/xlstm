@@ -44,7 +44,7 @@ def conv1d_step(
     ), f"x has feature dimension {x.shape[2]} but conv_state has feature dimension {conv_state.shape[2]}"
     assert x.shape[1] == 1, f"x has sequence length {x.shape[1]} but it should be 1"
     conv_state.copy_(torch.roll(conv_state, shifts=-1, dims=1))
-    conv_state[:, -1, :] = x
+    conv_state[:, -1, :] = x[:, 0, :]
     y = torch.sum(conv_state * conv1d_weight, dim=1, keepdim=True)
     if conv1d_bias is not None:
         y += conv1d_bias

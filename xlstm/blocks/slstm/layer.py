@@ -122,3 +122,34 @@ class sLSTMLayer(nn.Module):
             return out, last_state
         else:
             return out
+
+    def step(
+        self,
+        x: torch.Tensor,
+        slstm_state: torch.Tensor = None,
+        conv_state: torch.Tensor = None,
+    ):
+        B, S, _ = x.shape
+
+        if self.config.conv1d_kernel_size > 0:
+            x_conv, conv_state = self.conv1d.step(x, conv_state=conv_state)
+            x_conv = self.conv_act_fn(x_conv)
+        else:
+            x_conv = x
+            conv_state = None
+
+        i, f, z, o = (
+            self.igate(x_conv),
+            self.fgate(x_conv),
+            self.zgate(x),
+            self.ogate(x),
+        )
+
+        y, last_state = self.slstm_cell.step(
+            torch.cat([i, f, z, o], dim=-1), state=slstm_state
+        )
+
+        y = self.dropout(y)
+
+        out = self.group_norm(y).transpose(1, 2).view(B, S, -1)
+        return out, {"slstm_state": last_state, "conv_state": conv_state}
